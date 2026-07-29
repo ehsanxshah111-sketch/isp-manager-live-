@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import API from '../utils/api';
 import toast from 'react-hot-toast';
 
@@ -6,51 +6,49 @@ const Settings = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  
-  // Username form
+
   const [usernameForm, setUsernameForm] = useState({
     currentUsername: '',
     newUsername: '',
     confirmUsername: ''
   });
-  
-  // Password form
+
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
 
-  // Success messages
   const [usernameSuccess, setUsernameSuccess] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
 
-  useEffect(() => {
-    loadUser();
-  }, []);
-
-  const loadUser = async () => {
+  // ===== LOAD USER FUNCTION =====
+  const loadUser = useCallback(async () => {
     try {
       setLoading(true);
       const res = await API.get('/auth/me');
       setUser(res.data.user);
-      setUsernameForm({
-        ...usernameForm,
+      setUsernameForm(prev => ({
+        ...prev,
         currentUsername: res.data.user.username || ''
-      });
+      }));
     } catch (error) {
       toast.error('Failed to load user data');
       console.error('Error:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadUser();
+  }, [loadUser]);
 
   // ===== CHANGE USERNAME =====
   const handleUsernameSubmit = async (e) => {
     e.preventDefault();
     setUsernameSuccess('');
-    
+
     if (!usernameForm.newUsername || !usernameForm.confirmUsername) {
       toast.error('Please fill in all username fields');
       return;
@@ -81,19 +79,18 @@ const Settings = () => {
       const res = await API.put('/auth/change-username', {
         newUsername: usernameForm.newUsername.trim()
       });
-      
+
       if (res.data.success) {
         toast.success('Username updated successfully!');
         setUsernameSuccess('✅ Username updated to: ' + res.data.user.username);
-        
+
         localStorage.setItem('token', res.data.token);
         setUsernameForm({
-          ...usernameForm,
           currentUsername: res.data.user.username,
           newUsername: '',
           confirmUsername: ''
         });
-        loadUser();
+        await loadUser();
         setTimeout(() => window.location.reload(), 1500);
       }
     } catch (error) {
@@ -107,7 +104,7 @@ const Settings = () => {
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     setPasswordSuccess('');
-    
+
     if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
       toast.error('Please fill in all password fields');
       return;
@@ -134,7 +131,7 @@ const Settings = () => {
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword
       });
-      
+
       if (res.data.success) {
         toast.success('Password changed successfully!');
         setPasswordSuccess('✅ Password changed successfully!');
@@ -158,9 +155,9 @@ const Settings = () => {
   return (
     <div className="settings-page">
       <h2 className="page-title">⚙️ Settings</h2>
-      
+
       <div className="settings-grid">
-        {/* ===== CHANGE USERNAME ===== */}
+        {/* CHANGE USERNAME */}
         <div className="settings-card">
           <div className="settings-card-header">
             <span className="settings-icon">👤</span>
@@ -169,26 +166,26 @@ const Settings = () => {
               <p>Update your login username</p>
             </div>
           </div>
-          
+
           {usernameSuccess && (
             <div className="success-message">{usernameSuccess}</div>
           )}
-          
+
           <form onSubmit={handleUsernameSubmit}>
             <div className="form-group">
               <label>Current Username</label>
-              <input 
-                type="text" 
-                value={usernameForm.currentUsername} 
-                disabled 
+              <input
+                type="text"
+                value={usernameForm.currentUsername}
+                disabled
                 className="disabled-input"
               />
             </div>
             <div className="form-group">
               <label>New Username</label>
-              <input 
-                type="text" 
-                value={usernameForm.newUsername} 
+              <input
+                type="text"
+                value={usernameForm.newUsername}
                 onChange={(e) => setUsernameForm({ ...usernameForm, newUsername: e.target.value })}
                 placeholder="Enter new username"
                 required
@@ -197,9 +194,9 @@ const Settings = () => {
             </div>
             <div className="form-group">
               <label>Confirm New Username</label>
-              <input 
-                type="text" 
-                value={usernameForm.confirmUsername} 
+              <input
+                type="text"
+                value={usernameForm.confirmUsername}
                 onChange={(e) => setUsernameForm({ ...usernameForm, confirmUsername: e.target.value })}
                 placeholder="Confirm new username"
                 required
@@ -211,7 +208,7 @@ const Settings = () => {
           </form>
         </div>
 
-        {/* ===== CHANGE PASSWORD ===== */}
+        {/* CHANGE PASSWORD */}
         <div className="settings-card">
           <div className="settings-card-header">
             <span className="settings-icon">🔒</span>
@@ -220,17 +217,17 @@ const Settings = () => {
               <p>Update your account password</p>
             </div>
           </div>
-          
+
           {passwordSuccess && (
             <div className="success-message">{passwordSuccess}</div>
           )}
-          
+
           <form onSubmit={handlePasswordSubmit}>
             <div className="form-group">
               <label>Current Password</label>
-              <input 
-                type="password" 
-                value={passwordForm.currentPassword} 
+              <input
+                type="password"
+                value={passwordForm.currentPassword}
                 onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
                 placeholder="Enter current password"
                 required
@@ -238,9 +235,9 @@ const Settings = () => {
             </div>
             <div className="form-group">
               <label>New Password</label>
-              <input 
-                type="password" 
-                value={passwordForm.newPassword} 
+              <input
+                type="password"
+                value={passwordForm.newPassword}
                 onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
                 placeholder="Enter new password (min 6 characters)"
                 required
@@ -248,9 +245,9 @@ const Settings = () => {
             </div>
             <div className="form-group">
               <label>Confirm New Password</label>
-              <input 
-                type="password" 
-                value={passwordForm.confirmPassword} 
+              <input
+                type="password"
+                value={passwordForm.confirmPassword}
                 onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
                 placeholder="Confirm new password"
                 required
@@ -262,7 +259,7 @@ const Settings = () => {
           </form>
         </div>
 
-        {/* ===== ACCOUNT INFO ===== */}
+        {/* ACCOUNT INFO */}
         <div className="settings-card full-width">
           <div className="settings-card-header">
             <span className="settings-icon">📋</span>
@@ -271,7 +268,7 @@ const Settings = () => {
               <p>Your account details</p>
             </div>
           </div>
-          
+
           <div className="account-info-grid">
             <div className="account-info-item">
               <span className="account-label">Username</span>
